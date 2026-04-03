@@ -1,0 +1,9 @@
+1) download the dataset and upload to mysql (Assuming that data present in database)
+
+2) Decide what to make in dashboard
+take help of claude 
+
+3)Make it with streamlit
+run querries in sql at my sql copy them and run through using python
+
+4) along with that make whole things in notebook.ipynb also for Practice.
