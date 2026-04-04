@@ -1,0 +1,191 @@
+Got it. Pure planning from me, you write all the code.
+
+---
+
+## 📋 Dashboard Plan — Airlines Flight Dashboard
+
+**MySQL + Streamlit | Multi-page with sidebar navigation**
+
+---
+
+### 🗂️ Pages & What Goes on Each
+
+---
+
+### Page 1 — 🏠 Overview
+
+**Purpose:** First thing you see. High-level snapshot of the entire dataset.
+
+**KPI Cards (top row — 6 cards)**
+- Total Flights in DB
+- No. of Airlines
+- Avg duration
+- Avg Ticket Price (₹)
+- Cheapest Ticket (₹)
+- Most Expensive Ticket (₹)
+
+**Charts**
+- **Donut Chart** — Flight share by airline (market share %)
+- **Bar Chart** — Total flights per route (source → destination), sorted descending
+- **Bar Chart** — Avg price by airline (Economy vs Business side by side, grouped bar)
+- **KPI trend line** — Avg price vs Days Left to departure (the booking curve — this is your hero chart, shows how price rises as departure approaches)
+
+**Streamlit Layout**
+```
+st.columns(6)          → 6 KPI cards
+st.columns(2)          → Donut | Bar (flights per route)
+st.columns(2)          → Grouped bar (price/airline/class) | Line (price vs days left)
+```
+
+---
+
+### Page 2 — 💰 Price Analysis
+
+**Purpose:** Deep dive into what drives price.
+
+**Filters (sidebar, only on this page)**
+- Airline (multiselect)
+- Class (Economy / Business)
+- Stops (zero / one / two+)
+- Source City
+- Destination City
+
+**Charts**
+- **Box Plot** — Price distribution by airline (shows median, outliers, spread — much better than just avg)
+- **Histogram** — Price distribution overall (how prices are spread ₹1k to ₹1.2L)
+- **Bar Chart** — Avg price by number of stops (zero vs one vs two+)
+- **Scatter Plot** — Duration vs Price (colored by airline — do longer flights cost more?)
+- **Line Chart** — Avg price vs Days Left (1–49), broken by class (Economy line vs Business line)
+- **Heatmap** — Avg price: Source City × Destination City grid
+
+**Streamlit Layout**
+```
+st.columns(2)    → Box plot | Histogram
+st.columns(2)    → Stops bar | Duration vs Price scatter
+st.columns(1)    → Price vs Days Left (full width — important chart)
+st.columns(1)    → Route price heatmap (full width)
+```
+
+---
+
+### Page 3 — ✈️ Route & City Analysis
+
+**Purpose:** Which routes are busiest, most expensive, fastest.
+
+**Charts**
+- **Heatmap** — Number of flights: Source City × Destination City (busiest routes)
+- **Horizontal Bar** — Top 10 routes by avg price
+- **Horizontal Bar** — Top 10 routes by flight count
+- **Bar Chart** — Avg duration per route (which route takes longest)
+- **Stacked Bar** — Stops breakdown per route (how many routes have direct flights)
+
+**Streamlit Layout**
+```
+st.columns(1)    → Route count heatmap (full width)
+st.columns(2)    → Top routes by price | Top routes by count
+st.columns(2)    → Avg duration per route | Stops breakdown stacked bar
+```
+
+---
+
+### Page 4 — 🕐 Time Patterns
+
+**Purpose:** When to fly, when prices are low.
+
+**Charts**
+- **Bar Chart** — Flights count by Departure Time slot (Morning, Evening, etc.)
+- **Bar Chart** — Avg price by Departure Time slot (is Early Morning cheapest?)
+- **Bar Chart** — Avg price by Arrival Time slot
+- **Heatmap** — Departure Time × Arrival Time → flight count (which combos are most common)
+- **Grouped Bar** — Departure time breakdown per airline (does Indigo fly more at night?)
+
+**Streamlit Layout**
+```
+st.columns(2)    → Flights by dep time | Avg price by dep time
+st.columns(1)    → Dep time × Arrival time heatmap (full width)
+st.columns(2)    → Avg price by arrival time | Dep time per airline grouped bar
+```
+
+---
+
+### Page 5 — 🏢 Airline Comparison
+
+**Purpose:** Side-by-side comparison of all 6 airlines.
+
+**Charts**
+- **Radar Chart** — Airline comparison across: avg price, avg duration, % direct flights, % business class, flight count (normalized) — this is a premium, portfolio-worthy chart
+- **Stacked Bar** — Stops distribution per airline (who runs most direct flights)
+- **Grouped Bar** — Class split per airline (Economy vs Business count)
+- **Bar Chart** — Avg duration per airline
+- **Table** — Summary stats table: airline | total flights | avg price | avg duration | % direct | % business
+
+**Streamlit Layout**
+```
+st.columns(2)    → Radar chart | Summary stats table
+st.columns(2)    → Stops stacked bar | Class split grouped bar
+st.columns(1)    → Avg duration per airline (full width)
+```
+
+---
+
+### Page 6 — 🔍 Data Explorer
+
+**Purpose:** Raw data with filters. Let user query and download.
+
+**Features**
+- All filters active (airline, class, stops, source, dest, departure time, price range slider, days left slider)
+- Filtered row count shown live: `"Showing 12,453 of 3,00,153 flights"`
+- `st.dataframe()` with full filtered result
+- Download as CSV button (`st.download_button`)
+
+**Streamlit Layout**
+```
+st.columns(3)    → 3 filter summary metrics (filtered count, avg price, avg duration)
+st.columns(1)    → st.dataframe (full width)
+st.columns(1)    → Download CSV button
+```
+
+---
+
+### 🗃️ SQL Query List (one per chart)
+
+Here's what queries you'll need to write, mapped to charts:
+
+| Chart | Query pattern |
+|---|---|
+| KPI cards | `SELECT COUNT(*), COUNT(DISTINCT airline), AVG(price), MIN(price), MAX(price)` |
+| Market share donut | `GROUP BY airline → COUNT(*)` |
+| Flights per route | `GROUP BY source_city, destination_city → COUNT(*)` |
+| Price vs days left | `GROUP BY days_left → AVG(price)` |
+| Box plot data | `SELECT airline, price` (full pull, plotly handles box) |
+| Price by stops | `GROUP BY stops → AVG(price)` |
+| Duration vs price scatter | `SELECT duration, price, airline` (sampled) |
+| Route price heatmap | `GROUP BY source_city, destination_city → AVG(price)` |
+| Dep time flight count | `GROUP BY departure_time → COUNT(*)` |
+| Dep time avg price | `GROUP BY departure_time → AVG(price)` |
+| Dep × Arrival heatmap | `GROUP BY departure_time, arrival_time → COUNT(*)` |
+| Stops per airline | `GROUP BY airline, stops → COUNT(*)` |
+| Class split per airline | `GROUP BY airline, class → COUNT(*)` |
+| Avg duration per airline | `GROUP BY airline → AVG(duration)` |
+
+---
+
+### ⚙️ Streamlit Sidebar (global)
+
+```
+st.sidebar:
+  - App logo / title
+  - Page navigation (radio or selectbox → 6 pages)
+  - Global filters (if any — or page-level filters)
+  - DB connection status indicator (green dot = connected)
+```
+
+---
+
+### 💡 3 Things That'll Make It Stand Out
+
+1. **Booking curve chart** (price vs days left, split by class) — very insightful, not obvious to build
+2. **Radar chart** on airline comparison page — visually impressive, rare in student dashboards
+3. **Live filter row count** on data explorer page — feels like a real product
+
+That's everything you need. Want me to also give you the `db.py` connection file structure and the folder layout for the project?

@@ -4,6 +4,10 @@
 take help of claude 
 
 3)Make it with streamlit
-run querries in sql at my sql copy them and run through using python
+run querries in sql at mysql , copy them and run through using python
 
 4) along with that make whole things in notebook.ipynb also for Practice.
+
+
+
+
