@@ -4,7 +4,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import plotly.express as px
-import plotly.graph_objects as go
 import pandas as pd
 
 # ─────────────────────────────────────────────
@@ -21,26 +20,17 @@ st.set_page_config(
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* Font */
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono&display=swap');
 
-    html, body, [class*="css"] {
-        font-family: 'DM Sans', sans-serif;
-    }
+    html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 
-    /* Background */
-    .stApp {
-        background-color: #0f1117;
-        color: #e8eaf0;
-    }
+    .stApp { background-color: #0f1117; color: #e8eaf0; }
 
-    /* Sidebar */
     [data-testid="stSidebar"] {
         background-color: #161b27;
         border-right: 1px solid #1e2535;
     }
 
-    /* Metric cards */
     [data-testid="stMetric"] {
         background: linear-gradient(135deg, #1a2035, #1e2840);
         border: 1px solid #2a3550;
@@ -50,21 +40,17 @@ st.markdown("""
     [data-testid="stMetricLabel"] { color: #7b8db0 !important; font-size: 12px; }
     [data-testid="stMetricValue"] { color: #e8eaf0 !important; font-size: 24px; font-weight: 600; }
 
-    /* Section headers */
     h1 { color: #ffffff !important; font-weight: 600; letter-spacing: -0.5px; }
     h2 { color: #c5cde8 !important; font-weight: 500; }
     h3 { color: #a0aec8 !important; font-weight: 500; font-size: 15px; }
 
-    /* Divider */
     hr { border-color: #1e2535 !important; }
 
-    /* Multiselect tags */
     [data-baseweb="tag"] {
         background-color: #2a4080 !important;
         border-radius: 6px !important;
     }
 
-    /* Button */
     .stButton > button {
         background: linear-gradient(135deg, #2a4080, #1e5fa8);
         color: white;
@@ -77,7 +63,6 @@ st.markdown("""
     }
     .stButton > button:hover { opacity: 0.85; }
 
-    /* Insight cards */
     .insight-card {
         background: linear-gradient(135deg, #1a2035, #1a2840);
         border: 1px solid #2a3550;
@@ -89,53 +74,17 @@ st.markdown("""
         color: #c5cde8;
         line-height: 1.6;
     }
-    .insight-card span {
-        color: #5ba3f5;
-        font-weight: 600;
-    }
+    .insight-card span { color: #5ba3f5; font-weight: 600; }
 
-    /* Chart containers */
-    .chart-box {
-        background: #161b27;
-        border: 1px solid #1e2535;
-        border-radius: 12px;
-        padding: 16px;
-    }
-
-    /* Dataframe */
-    [data-testid="stDataFrame"] {
-        border-radius: 10px;
-        overflow: hidden;
-    }
+    [data-testid="stDataFrame"] { border-radius: 10px; overflow: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
-#  CHART THEME — dark matplotlib
+#  CHART HELPERS
 # ─────────────────────────────────────────────
-def set_chart_style():
-    mpl.rcParams.update({
-        "figure.facecolor":  "#161b27",
-        "axes.facecolor":    "#161b27",
-        "axes.edgecolor":    "#2a3550",
-        "axes.labelcolor":   "#7b8db0",
-        "xtick.color":       "#7b8db0",
-        "ytick.color":       "#7b8db0",
-        "grid.color":        "#1e2535",
-        "grid.linestyle":    "--",
-        "grid.alpha":        0.5,
-        "text.color":        "#c5cde8",
-        "font.family":       "DejaVu Sans",
-    })
-
 PALETTE = ["#3a7bd5", "#00c9a7", "#f7971e", "#e040fb", "#ff6b6b", "#4ecdc4"]
-
-def styled_fig(w=8, h=4):
-    set_chart_style()
-    fig, ax = plt.subplots(figsize=(w, h))
-    ax.grid(axis="y", alpha=0.3)
-    return fig, ax
 
 PLOTLY_THEME = dict(
     paper_bgcolor="#161b27",
@@ -144,39 +93,53 @@ PLOTLY_THEME = dict(
     colorway=PALETTE,
 )
 
+def set_chart_style():
+    """Apply dark theme to all matplotlib/seaborn charts."""
+    mpl.rcParams.update({
+        "figure.facecolor": "#161b27",
+        "axes.facecolor":   "#161b27",
+        "axes.edgecolor":   "#2a3550",
+        "axes.labelcolor":  "#7b8db0",
+        "xtick.color":      "#7b8db0",
+        "ytick.color":      "#7b8db0",
+        "grid.color":       "#1e2535",
+        "grid.linestyle":   "--",
+        "grid.alpha":       0.5,
+        "text.color":       "#c5cde8",
+        "font.family":      "DejaVu Sans",
+    })
+    # Set palette globally — avoids passing palette= per chart (deprecated in newer seaborn)
+    sns.set_palette(PALETTE)
+
+def styled_fig(w=8, h=4):
+    """Return a dark-themed (fig, ax) pair."""
+    set_chart_style()
+    fig, ax = plt.subplots(figsize=(w, h))
+    ax.grid(axis="y", alpha=0.3)
+    return fig, ax
+
 
 # ─────────────────────────────────────────────
-#  HELPER — build WHERE clause
+#  WHERE CLAUSE BUILDER
 # ─────────────────────────────────────────────
 def build_where(filters: dict) -> str:
     """
-    filters = {
-        'airline':        list,
-        'source_city':    list,
-        'destination_city': list,
-        'departure_time': list,
-        'stops':          list,
-        'arrival_time':   list,
-        'class':          list,
-        'price':          (min, max) tuple  — optional
-        'days_left':      (min, max) tuple  — optional
-    }
-    Returns a WHERE clause string (empty string if no filters).
+    Build a SQL WHERE clause from a filters dict.
+
+    Supported keys:
+        airline, source_city, destination_city, departure_time,
+        stops, arrival_time, class  →  list of selected values
+        price, days_left            →  (min, max) tuple
+    Returns empty string if no active filters.
     """
     conditions = []
 
-    col_map = {
-        "airline":           "airline",
-        "source_city":       "source_city",
-        "destination_city":  "destination_city",
-        "departure_time":    "departure_time",
-        "stops":             "stops",
-        "arrival_time":      "arrival_time",
-        "class":             "class",
-    }
-
-    for key, col in col_map.items():
-        vals = filters.get(key, [])
+    list_cols = [
+        "airline", "source_city", "destination_city",
+        "departure_time", "stops", "arrival_time", "class",
+    ]
+    for col in list_cols:
+        vals = filters.get(col, [])
         if vals:
             escaped = ", ".join(f"'{v}'" for v in vals)
             conditions.append(f"{col} IN ({escaped})")
@@ -198,7 +161,6 @@ def build_where(filters: dict) -> str:
 with st.sidebar:
     st.markdown("## ✈️ Airlines Dashboard")
     st.markdown("---")
-
     page = st.radio(
         "Navigate",
         [
@@ -211,7 +173,6 @@ with st.sidebar:
         ],
         label_visibility="collapsed",
     )
-
     st.markdown("---")
     st.success("🟢 Database Connected")
     st.caption("Indian Airline Flights Dataset")
@@ -226,7 +187,7 @@ if page == "🏠 Overview":
     st.caption("High-level summary of the entire flight dataset")
     st.markdown("---")
 
-    # ── KPI Cards ──────────────────────────────
+    # KPI Cards
     st.subheader("Key Metrics")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
 
@@ -251,16 +212,15 @@ if page == "🏠 Overview":
 
     st.markdown("---")
 
-    # ── Insights ───────────────────────────────
+    # Insights
     st.subheader("📌 Key Insights")
-
     insights = [
         ("Business class tickets cost roughly <span>3–5× more</span> than Economy — "
          "yet only a small fraction of travellers book them, making Economy the true "
          "volume driver for every airline."),
 
         ("Prices <span>drop sharply when booked 30+ days early</span>. "
-         "Last-minute bookings (under 7 days) can be 40–60 % more expensive — "
+         "Last-minute bookings (under 7 days) can be 40–60% more expensive — "
          "booking early is the single biggest money-saving lever."),
 
         ("<span>Vistara and Air India</span> consistently command the highest average fares, "
@@ -273,13 +233,12 @@ if page == "🏠 Overview":
         ("Flights with <span>zero stops</span> are priced higher on average than one-stop flights "
          "— travellers pay a clear premium for convenience, not just distance."),
     ]
-
     for text in insights:
         st.markdown(f'<div class="insight-card">💡 {text}</div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
-    # ── Charts ─────────────────────────────────
+    # Charts
     st.subheader("Flight Distribution")
     col1, col2 = st.columns(2)
 
@@ -293,7 +252,7 @@ if page == "🏠 Overview":
             ORDER BY no_of_flights DESC
         """)
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["route"], y=df["no_of_flights"], palette=PALETTE, ax=ax)
+        sns.barplot(x="route", y="no_of_flights", data=df, ax=ax)
         ax.set_xlabel("Route", fontsize=10)
         ax.set_ylabel("Flights", fontsize=10)
         plt.xticks(rotation=45, ha="right", fontsize=8)
@@ -309,7 +268,7 @@ if page == "🏠 Overview":
             ORDER BY price DESC
         """)
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["airline"], y=df["price"], palette=PALETTE, ax=ax)
+        sns.barplot(x="airline", y="price", data=df, ax=ax)
         ax.set_xlabel("Airline", fontsize=10)
         ax.set_ylabel("Avg Price (₹)", fontsize=10)
         plt.xticks(rotation=30, ha="right", fontsize=9)
@@ -327,7 +286,8 @@ if page == "🏠 Overview":
             ORDER BY days_left
         """)
         fig, ax = styled_fig(7, 4)
-        sns.lineplot(x=df["days_left"], y=df["price"], color=PALETTE[0], linewidth=2, ax=ax)
+        sns.lineplot(x="days_left", y="price", data=df,
+                     color=PALETTE[0], linewidth=2, ax=ax)
         ax.set_xlabel("Days Left", fontsize=10)
         ax.set_ylabel("Avg Price (₹)", fontsize=10)
         plt.tight_layout()
@@ -341,11 +301,8 @@ if page == "🏠 Overview":
             FROM flight
             GROUP BY airline
         """)
-        fig = px.pie(
-            df, names="airline", values="percentage_share",
-            color_discrete_sequence=PALETTE,
-            hole=0.4,
-        )
+        fig = px.pie(df, names="airline", values="percentage_share",
+                     color_discrete_sequence=PALETTE, hole=0.4)
         fig.update_layout(**PLOTLY_THEME, margin=dict(t=10, b=10, l=10, r=10))
         st.plotly_chart(fig, use_container_width=True)
 
@@ -359,44 +316,50 @@ elif page == "💰 Price Analysis":
     st.caption("Explore how price varies across airlines, routes, stops, and booking time")
     st.markdown("---")
 
-    # ── Filters ────────────────────────────────
+    # Filters
     st.subheader("Filters")
-
     fc1, fc2, fc3, fc4 = st.columns(4)
     with fc1:
-        df_opt = run_query("SELECT DISTINCT airline FROM flight")
-        airline = st.multiselect("Airline", df_opt["airline"].unique(), key="pa_airline")
+        airline = st.multiselect("Airline",
+            run_query("SELECT DISTINCT airline FROM flight")["airline"].unique(),
+            key="pa_airline")
     with fc2:
-        df_opt = run_query("SELECT DISTINCT source_city FROM flight")
-        source = st.multiselect("Source City", df_opt["source_city"].unique(), key="pa_source")
+        source = st.multiselect("Source City",
+            run_query("SELECT DISTINCT source_city FROM flight")["source_city"].unique(),
+            key="pa_source")
     with fc3:
-        df_opt = run_query("SELECT DISTINCT destination_city FROM flight")
-        destination = st.multiselect("Destination City", df_opt["destination_city"].unique(), key="pa_destination")
+        destination = st.multiselect("Destination City",
+            run_query("SELECT DISTINCT destination_city FROM flight")["destination_city"].unique(),
+            key="pa_destination")
     with fc4:
-        df_opt = run_query("SELECT DISTINCT departure_time FROM flight")
-        departure_time = st.multiselect("Departure Time", df_opt["departure_time"].unique(), key="pa_departure")
+        departure_time = st.multiselect("Departure Time",
+            run_query("SELECT DISTINCT departure_time FROM flight")["departure_time"].unique(),
+            key="pa_departure")
 
     fc5, fc6, fc7, fc8 = st.columns(4)
     with fc5:
-        df_opt = run_query("SELECT DISTINCT stops FROM flight")
-        stops = st.multiselect("Stops", df_opt["stops"].unique(), key="pa_stops")
+        stops = st.multiselect("Stops",
+            run_query("SELECT DISTINCT stops FROM flight")["stops"].unique(),
+            key="pa_stops")
     with fc6:
-        df_opt = run_query("SELECT DISTINCT arrival_time FROM flight")
-        arrival_time = st.multiselect("Arrival Time", df_opt["arrival_time"].unique(), key="pa_arrival")
+        arrival_time = st.multiselect("Arrival Time",
+            run_query("SELECT DISTINCT arrival_time FROM flight")["arrival_time"].unique(),
+            key="pa_arrival")
     with fc7:
-        df_opt = run_query("SELECT DISTINCT class FROM flight")
-        flight_class = st.multiselect("Class", df_opt["class"].unique(), key="pa_class")
+        flight_class = st.multiselect("Class",
+            run_query("SELECT DISTINCT class FROM flight")["class"].unique(),
+            key="pa_class")
     with fc8:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Clear Filters", key="pa_clear"):
-            for k in ["pa_airline","pa_source","pa_destination","pa_departure",
-                      "pa_stops","pa_arrival","pa_class"]:
+            for k in ["pa_airline", "pa_source", "pa_destination", "pa_departure",
+                      "pa_stops", "pa_arrival", "pa_class"]:
                 st.session_state[k] = []
             st.rerun()
 
     st.markdown("---")
 
-    # ── Build WHERE ────────────────────────────
+    # Build WHERE clause
     wh = build_where({
         "airline":           airline,
         "source_city":       source,
@@ -407,14 +370,14 @@ elif page == "💰 Price Analysis":
         "class":             flight_class,
     })
 
-    # ── Charts ─────────────────────────────────
+    # Charts
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("##### Price Distribution by Airline")
         df = run_query(f"SELECT airline, price FROM flight {wh}")
         fig, ax = styled_fig(7, 4)
-        sns.boxplot(x=df["airline"], y=df["price"], palette=PALETTE, ax=ax)
+        sns.boxplot(x="airline", y="price", data=df, ax=ax)
         ax.set_xlabel("Airline", fontsize=10)
         ax.set_ylabel("Price (₹)", fontsize=10)
         plt.xticks(rotation=30, ha="right", fontsize=9)
@@ -425,7 +388,7 @@ elif page == "💰 Price Analysis":
         st.markdown("##### Overall Price Distribution")
         df = run_query(f"SELECT price FROM flight {wh}")
         fig, ax = styled_fig(7, 4)
-        sns.histplot(x=df["price"], bins=30, kde=True, color=PALETTE[0], ax=ax)
+        sns.histplot(x="price", data=df, bins=30, kde=True, color=PALETTE[0], ax=ax)
         ax.set_xlabel("Price (₹)", fontsize=10)
         ax.set_ylabel("Count", fontsize=10)
         plt.tight_layout()
@@ -441,7 +404,7 @@ elif page == "💰 Price Analysis":
             GROUP BY stops
         """)
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["stops"], y=df["avg_price"], palette=PALETTE, ax=ax)
+        sns.barplot(x="stops", y="avg_price", data=df, ax=ax)
         ax.set_xlabel("Stops", fontsize=10)
         ax.set_ylabel("Avg Price (₹)", fontsize=10)
         plt.tight_layout()
@@ -451,16 +414,17 @@ elif page == "💰 Price Analysis":
         st.markdown("##### Duration vs Price")
         df = run_query(f"SELECT duration, price FROM flight {wh}")
         fig, ax = styled_fig(7, 4)
-        sns.scatterplot(x=df["duration"], y=df["price"], alpha=0.4,
-                        color=PALETTE[0], ax=ax)
+        sns.scatterplot(x="duration", y="price", data=df,
+                        alpha=0.4, color=PALETTE[0], ax=ax)
         ax.set_xlabel("Duration (hrs)", fontsize=10)
         ax.set_ylabel("Price (₹)", fontsize=10)
         plt.tight_layout()
         st.pyplot(fig)
 
-    # Days Left line chart — Economy vs Business
+    # Days Left — Economy vs Business line chart
     st.markdown("##### Avg Price vs Days Left (Economy vs Business)")
 
+    # base filters without class — class handled separately per line
     filters_base = {
         "airline":           airline,
         "source_city":       source,
@@ -479,7 +443,7 @@ elif page == "💰 Price Analysis":
             FROM flight {eco_wh}
             GROUP BY days_left ORDER BY days_left
         """)
-        sns.lineplot(x=df1["days_left"], y=df1["avg_price"],
+        sns.lineplot(x="days_left", y="avg_price", data=df1,
                      label="Economy", color=PALETTE[0], linewidth=2, ax=ax)
 
     if not flight_class or "Business" in flight_class:
@@ -489,7 +453,7 @@ elif page == "💰 Price Analysis":
             FROM flight {bus_wh}
             GROUP BY days_left ORDER BY days_left
         """)
-        sns.lineplot(x=df2["days_left"], y=df2["avg_price"],
+        sns.lineplot(x="days_left", y="avg_price", data=df2,
                      label="Business", color=PALETTE[2], linewidth=2, ax=ax)
 
     ax.set_xlabel("Days Left to Departure", fontsize=10)
@@ -498,7 +462,7 @@ elif page == "💰 Price Analysis":
     plt.tight_layout()
     st.pyplot(fig)
 
-    # Route heatmap
+    # Route price heatmap
     st.markdown("##### Avg Price: Source × Destination Heatmap")
     df = run_query(f"""
         SELECT source_city, destination_city, ROUND(AVG(price)) AS avg_price
@@ -523,7 +487,6 @@ elif page == "✈️ Route & City":
     st.caption("Which routes are busiest, most expensive, and longest?")
     st.markdown("---")
 
-    # Flight count heatmap
     st.markdown("##### Number of Flights: Source × Destination")
     df = run_query("""
         SELECT source_city, destination_city, COUNT(*) AS count
@@ -550,7 +513,7 @@ elif page == "✈️ Route & City":
             ORDER BY avg_price DESC LIMIT 10
         """)
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["avg_price"], y=df["route"], palette=PALETTE, ax=ax)
+        sns.barplot(x="avg_price", y="route", data=df, ax=ax)
         ax.set_xlabel("Avg Price (₹)", fontsize=10)
         ax.set_ylabel("")
         plt.tight_layout()
@@ -566,7 +529,7 @@ elif page == "✈️ Route & City":
             ORDER BY count DESC LIMIT 10
         """)
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["count"], y=df["route"], palette=PALETTE, ax=ax)
+        sns.barplot(x="count", y="route", data=df, ax=ax)
         ax.set_xlabel("Number of Flights", fontsize=10)
         ax.set_ylabel("")
         plt.tight_layout()
@@ -584,7 +547,7 @@ elif page == "✈️ Route & City":
             ORDER BY avg_duration DESC
         """)
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["route"], y=df["avg_duration"], palette=PALETTE, ax=ax)
+        sns.barplot(x="route", y="avg_duration", data=df, ax=ax)
         ax.set_xlabel("Route", fontsize=10)
         ax.set_ylabel("Avg Duration (hrs)", fontsize=10)
         plt.xticks(rotation=45, ha="right", fontsize=8)
@@ -593,13 +556,9 @@ elif page == "✈️ Route & City":
 
     with col4:
         st.markdown("##### Stops Breakdown")
-        df = run_query("""
-            SELECT stops, COUNT(*) AS count
-            FROM flight
-            GROUP BY stops
-        """)
+        df = run_query("SELECT stops, COUNT(*) AS count FROM flight GROUP BY stops")
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["stops"], y=df["count"], palette=PALETTE, ax=ax)
+        sns.barplot(x="stops", y="count", data=df, ax=ax)
         ax.set_xlabel("Stops", fontsize=10)
         ax.set_ylabel("Number of Flights", fontsize=10)
         plt.tight_layout()
@@ -619,12 +578,9 @@ elif page == "🕐 Time Patterns":
 
     with col1:
         st.markdown("##### Flights by Departure Time Slot")
-        df = run_query("""
-            SELECT departure_time, COUNT(*) AS count
-            FROM flight GROUP BY departure_time
-        """)
+        df = run_query("SELECT departure_time, COUNT(*) AS count FROM flight GROUP BY departure_time")
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["departure_time"], y=df["count"], palette=PALETTE, ax=ax)
+        sns.barplot(x="departure_time", y="count", data=df, ax=ax)
         ax.set_xlabel("Departure Time", fontsize=10)
         ax.set_ylabel("Flights", fontsize=10)
         plt.xticks(rotation=30, ha="right")
@@ -638,7 +594,7 @@ elif page == "🕐 Time Patterns":
             FROM flight GROUP BY departure_time
         """)
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["departure_time"], y=df["avg_price"], palette=PALETTE, ax=ax)
+        sns.barplot(x="departure_time", y="avg_price", data=df, ax=ax)
         ax.set_xlabel("Departure Time", fontsize=10)
         ax.set_ylabel("Avg Price (₹)", fontsize=10)
         plt.xticks(rotation=30, ha="right")
@@ -667,7 +623,7 @@ elif page == "🕐 Time Patterns":
             FROM flight GROUP BY arrival_time
         """)
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["arrival_time"], y=df["avg_price"], palette=PALETTE, ax=ax)
+        sns.barplot(x="arrival_time", y="avg_price", data=df, ax=ax)
         ax.set_xlabel("Arrival Time", fontsize=10)
         ax.set_ylabel("Avg Price (₹)", fontsize=10)
         plt.xticks(rotation=30, ha="right")
@@ -683,7 +639,7 @@ elif page == "🕐 Time Patterns":
             GROUP BY departure_time, airline
         """)
         fig, ax = styled_fig(7, 4)
-        sns.barplot(x=df["airline_time"], y=df["count"], palette=PALETTE, ax=ax)
+        sns.barplot(x="airline_time", y="count", data=df, ax=ax)
         ax.set_xlabel("")
         ax.set_ylabel("Flights", fontsize=10)
         plt.xticks(rotation=45, ha="right", fontsize=7)
@@ -704,20 +660,23 @@ elif page == "🏢 Airline Comparison":
     st.markdown("##### Multi-Metric Airline Comparison (Radar)")
     df = run_query("""
         SELECT airline,
-               AVG(price)                                                    AS avg_price,
-               CEIL(AVG(duration))                                           AS avg_duration,
-               COUNT(*) * 100.0 / (SELECT COUNT(*) FROM flight)              AS percentage_share,
-               COUNT(*)                                                      AS flight_count,
+               AVG(price)                                                              AS avg_price,
+               CEIL(AVG(duration))                                                     AS avg_duration,
+               COUNT(*) * 100.0 / (SELECT COUNT(*) FROM flight)                       AS percentage_share,
+               COUNT(*)                                                                AS flight_count,
                SUM(CASE WHEN class = 'Economy'  THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS economy_pct,
                SUM(CASE WHEN class = 'Business' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS business_pct
         FROM flight
         GROUP BY airline
     """)
-    cols = ["avg_price", "avg_duration", "percentage_share",
-            "flight_count", "economy_pct", "business_pct"]
+    metric_cols = ["avg_price", "avg_duration", "percentage_share",
+                   "flight_count", "economy_pct", "business_pct"]
+
+    # Min-Max normalize so all metrics sit on the same 0–1 scale
     df_norm = df.copy()
-    for col in cols:
-        df_norm[col] = (df[col] - df[col].min()) / (df[col].max() - df[col].min())
+    for col in metric_cols:
+        col_min, col_max = df[col].min(), df[col].max()
+        df_norm[col] = (df[col] - col_min) / (col_max - col_min)
 
     df_long = df_norm.melt(id_vars="airline", var_name="category", value_name="value")
     fig = px.line_polar(df_long, r="value", theta="category",
@@ -731,11 +690,8 @@ elif page == "🏢 Airline Comparison":
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("##### Stops Distribution per Airline")
-        df = run_query("""
-            SELECT airline, stops, COUNT(*) AS no_of_flights
-            FROM flight GROUP BY airline, stops
-        """)
+        st.markdown("##### Stops Distribution per Airline (Stacked)")
+        df = run_query("SELECT airline, stops, COUNT(*) AS no_of_flights FROM flight GROUP BY airline, stops")
         pivot_df = pd.pivot(data=df, index="airline",
                             columns="stops", values="no_of_flights")
         fig, ax = styled_fig(7, 4)
@@ -750,15 +706,11 @@ elif page == "🏢 Airline Comparison":
 
     with col2:
         st.markdown("##### Economy vs Business Split per Airline")
-        df = run_query("""
-            SELECT class, airline, COUNT(*) AS no_of_flights
-            FROM flight GROUP BY class, airline
-        """)
+        df = run_query("SELECT class, airline, COUNT(*) AS no_of_flights FROM flight GROUP BY class, airline")
         pivot_df = pd.pivot(data=df, index="airline",
                             columns="class", values="no_of_flights")
         fig, ax = styled_fig(7, 4)
-        pivot_df.plot(kind="bar",
-                      color=PALETTE[:len(pivot_df.columns)], ax=ax)
+        pivot_df.plot(kind="bar", color=PALETTE[:len(pivot_df.columns)], ax=ax)
         ax.set_xlabel("Airline", fontsize=10)
         ax.set_ylabel("Flights", fontsize=10)
         ax.legend(facecolor="#1e2535", edgecolor="#2a3550", labelcolor="#c5cde8")
@@ -768,12 +720,9 @@ elif page == "🏢 Airline Comparison":
 
     st.markdown("---")
     st.markdown("##### Avg Duration per Airline")
-    df = run_query("""
-        SELECT airline, AVG(duration) AS avg_duration
-        FROM flight GROUP BY airline
-    """)
+    df = run_query("SELECT airline, AVG(duration) AS avg_duration FROM flight GROUP BY airline")
     fig, ax = styled_fig(10, 4)
-    sns.barplot(x=df["airline"], y=df["avg_duration"], palette=PALETTE, ax=ax)
+    sns.barplot(x="airline", y="avg_duration", data=df, ax=ax)
     ax.set_xlabel("Airline", fontsize=10)
     ax.set_ylabel("Avg Duration (hrs)", fontsize=10)
     plt.tight_layout()
@@ -783,14 +732,14 @@ elif page == "🏢 Airline Comparison":
     st.markdown("##### 📊 Airline Summary Table")
     df = run_query("""
         SELECT airline,
-               COUNT(*)                                                            AS total_flights,
-               ROUND(AVG(price))                                                   AS avg_price,
-               FLOOR(AVG(duration))                                                AS avg_duration,
-               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM flight), 2)          AS market_share_pct,
+               COUNT(*)                                                                   AS total_flights,
+               ROUND(AVG(price))                                                          AS avg_price,
+               FLOOR(AVG(duration))                                                       AS avg_duration,
+               ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM flight), 2)                AS market_share_pct,
                ROUND(SUM(CASE WHEN class='Economy'  THEN 1 ELSE 0 END)*100.0/COUNT(*),1) AS economy_pct,
                ROUND(SUM(CASE WHEN class='Business' THEN 1 ELSE 0 END)*100.0/COUNT(*),1) AS business_pct,
-               MAX(price)                                                           AS max_price,
-               MIN(price)                                                           AS min_price
+               MAX(price)                                                                  AS max_price,
+               MIN(price)                                                                  AS min_price
         FROM flight
         GROUP BY airline
     """)
@@ -821,57 +770,66 @@ elif page == "🔍 Data Explorer":
 
     fc1, fc2, fc3, fc4 = st.columns(4)
     with fc1:
-        df_opt = run_query("SELECT DISTINCT airline FROM flight")
-        airline = st.multiselect("Airline", df_opt["airline"].unique(), key="de_airline")
+        airline = st.multiselect("Airline",
+            run_query("SELECT DISTINCT airline FROM flight")["airline"].unique(),
+            key="de_airline")
     with fc2:
-        df_opt = run_query("SELECT DISTINCT source_city FROM flight")
-        source = st.multiselect("Source City", df_opt["source_city"].unique(), key="de_source")
+        source = st.multiselect("Source City",
+            run_query("SELECT DISTINCT source_city FROM flight")["source_city"].unique(),
+            key="de_source")
     with fc3:
-        df_opt = run_query("SELECT DISTINCT destination_city FROM flight")
-        destination = st.multiselect("Destination City", df_opt["destination_city"].unique(), key="de_destination")
+        destination = st.multiselect("Destination City",
+            run_query("SELECT DISTINCT destination_city FROM flight")["destination_city"].unique(),
+            key="de_destination")
     with fc4:
-        df_opt = run_query("SELECT DISTINCT departure_time FROM flight")
-        departure_time = st.multiselect("Departure Time", df_opt["departure_time"].unique(), key="de_departure")
+        departure_time = st.multiselect("Departure Time",
+            run_query("SELECT DISTINCT departure_time FROM flight")["departure_time"].unique(),
+            key="de_departure")
 
     fc5, fc6, fc7, fc8 = st.columns(4)
     with fc5:
-        df_opt = run_query("SELECT DISTINCT stops FROM flight")
-        stops = st.multiselect("Stops", df_opt["stops"].unique(), key="de_stops")
+        stops = st.multiselect("Stops",
+            run_query("SELECT DISTINCT stops FROM flight")["stops"].unique(),
+            key="de_stops")
     with fc6:
-        df_opt = run_query("SELECT DISTINCT arrival_time FROM flight")
-        arrival_time = st.multiselect("Arrival Time", df_opt["arrival_time"].unique(), key="de_arrival")
+        arrival_time = st.multiselect("Arrival Time",
+            run_query("SELECT DISTINCT arrival_time FROM flight")["arrival_time"].unique(),
+            key="de_arrival")
     with fc7:
-        df_opt = run_query("SELECT DISTINCT class FROM flight")
-        flight_class = st.multiselect("Class", df_opt["class"].unique(), key="de_class")
+        flight_class = st.multiselect("Class",
+            run_query("SELECT DISTINCT class FROM flight")["class"].unique(),
+            key="de_class")
     with fc8:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Clear Filters", key="de_clear"):
-            for k in ["de_airline","de_source","de_destination","de_departure",
-                      "de_stops","de_arrival","de_class"]:
+            for k in ["de_airline", "de_source", "de_destination", "de_departure",
+                      "de_stops", "de_arrival", "de_class"]:
                 st.session_state[k] = []
-            max_p = int(run_query("SELECT MAX(price) FROM flight").iloc[0,0])
-            min_p = int(run_query("SELECT MIN(price) FROM flight").iloc[0,0])
-            max_d = int(run_query("SELECT MAX(days_left) FROM flight").iloc[0,0])
-            min_d = int(run_query("SELECT MIN(days_left) FROM flight").iloc[0,0])
+            min_p = int(run_query("SELECT MIN(price) FROM flight").iloc[0, 0])
+            max_p = int(run_query("SELECT MAX(price) FROM flight").iloc[0, 0])
+            min_d = int(run_query("SELECT MIN(days_left) FROM flight").iloc[0, 0])
+            max_d = int(run_query("SELECT MAX(days_left) FROM flight").iloc[0, 0])
             st.session_state["de_price"] = (min_p, max_p)
             st.session_state["de_days"]  = (min_d, max_d)
             st.rerun()
 
     sl1, sl2 = st.columns(2)
     with sl1:
-        max_p = int(run_query("SELECT MAX(price) FROM flight").iloc[0, 0])
         min_p = int(run_query("SELECT MIN(price) FROM flight").iloc[0, 0])
-        price_range = st.slider("Price Range (₹)", min_value=min_p, max_value=max_p,
+        max_p = int(run_query("SELECT MAX(price) FROM flight").iloc[0, 0])
+        price_range = st.slider("Price Range (₹)",
+                                 min_value=min_p, max_value=max_p,
                                  value=(min_p, max_p), key="de_price")
     with sl2:
-        max_d = int(run_query("SELECT MAX(days_left) FROM flight").iloc[0, 0])
         min_d = int(run_query("SELECT MIN(days_left) FROM flight").iloc[0, 0])
-        days_range = st.slider("Days Left to Departure", min_value=min_d, max_value=max_d,
+        max_d = int(run_query("SELECT MAX(days_left) FROM flight").iloc[0, 0])
+        days_range = st.slider("Days Left to Departure",
+                                min_value=min_d, max_value=max_d,
                                 value=(min_d, max_d), key="de_days")
 
     st.markdown("---")
 
-    # Build WHERE
+    # Build WHERE clause
     wh = build_where({
         "airline":           airline,
         "source_city":       source,
@@ -886,20 +844,19 @@ elif page == "🔍 Data Explorer":
 
     df = run_query(f"SELECT * FROM flight {wh}")
 
-    # Summary mini-metrics
+    # Mini summary metrics based on filtered data
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Flights Found",   f"{len(df):,}")
-    m2.metric("Avg Price",       f"₹{int(df['price'].mean()):,}"    if len(df) else "—")
-    m3.metric("Min Price",       f"₹{int(df['price'].min()):,}"     if len(df) else "—")
-    m4.metric("Max Price",       f"₹{int(df['price'].max()):,}"     if len(df) else "—")
+    m1.metric("Flights Found", f"{len(df):,}")
+    m2.metric("Avg Price",     f"₹{int(df['price'].mean()):,}"  if len(df) else "—")
+    m3.metric("Min Price",     f"₹{int(df['price'].min()):,}"   if len(df) else "—")
+    m4.metric("Max Price",     f"₹{int(df['price'].max()):,}"   if len(df) else "—")
 
     st.markdown("---")
     st.dataframe(df, use_container_width=True)
 
-    data = df.to_csv(index=False).encode("utf-8")
     st.download_button(
-        "⬇️ Download Filtered Data as CSV",
-        data=data,
+        label="⬇️ Download Filtered Data as CSV",
+        data=df.to_csv(index=False).encode("utf-8"),
         file_name="flights_filtered.csv",
         mime="text/csv",
     )
