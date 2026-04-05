@@ -111,7 +111,6 @@ st.columns(2)    → Avg price by arrival time | Dep time per airline grouped ba
 ### Page 5 — 🏢 Airline Comparison
 
 **Purpose:** Side-by-side comparison of all 6 airlines.
-
 **Charts**
 - **Radar Chart** — Airline comparison across: avg price, avg duration, % direct flights, % business class, flight count (normalized) — this is a premium, portfolio-worthy chart
 - **Stacked Bar** — Stops distribution per airline (who runs most direct flights)

@@ -22,3 +22,11 @@
 4) heatmap => how to draw
 
 
+## page 5:
+
+1) radar chart
+2) stacked bar chart and grouped bar chart using pd.plot()
+
+## page 6
+1) dynamic where clause
+
