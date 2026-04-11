@@ -36,6 +36,9 @@ with st.sidebar:
     # st.markdown('---')
 
     st.success('🟢 Database Connected')
+    if st.button("🔄 Refresh Data"):
+        run_query.clear()
+        st.rerun()
 
 
 if page == "🏠 Overview":
@@ -290,12 +293,12 @@ if page == "💰 Price Analysis":
     df = run_query("""SELECT DISTINCT(class) FROM flight;""")
     Class = st.multiselect('Class', options=df['class'].unique(), key='pa_class')
 
-    # Clear button — only clears Price Analysis filters
-    if st.button("🗑️ Clear All Filters", key='pa_clear'):
-        for key in ['pa_airline', 'pa_source', 'pa_destination',
-                    'pa_departure', 'pa_stops', 'pa_arrival', 'pa_class']:
-            st.session_state[key] = []
-        st.rerun()
+    # # Clear button — only clears Price Analysis filters
+    # if st.button("🗑️ Clear All Filters", key='pa_clear'):
+    #     for key in ['pa_airline', 'pa_source', 'pa_destination',
+    #                 'pa_departure', 'pa_stops', 'pa_arrival', 'pa_class']:
+    #         st.session_state[key] = []
+    #     st.rerun()
 
     st.markdown('---')
 
@@ -745,14 +748,14 @@ if page == '🔍 Data Explorer':
     days_range = st.slider("Days Left", min_value=min_days, max_value=max_days,
                             value=(min_days, max_days), key='de_days')
 
-    # Clear button — only clears Data Explorer filters
-    if st.button("🗑️ Clear All Filters", key='de_clear'):
-        for key in ['de_airline', 'de_source', 'de_destination', 'de_departure',
-                    'de_stops', 'de_arrival', 'de_class']:
-            st.session_state[key] = []
-        st.session_state['de_price'] = (min_price, max_price)
-        st.session_state['de_days'] = (min_days, max_days)
-        st.rerun()
+    # # Clear button — only clears Data Explorer filters
+    # if st.button("🗑️ Clear All Filters", key='de_clear'):
+    #     for key in ['de_airline', 'de_source', 'de_destination', 'de_departure',
+    #                 'de_stops', 'de_arrival', 'de_class']:
+    #         st.session_state[key] = []
+    #     st.session_state['de_price'] = (min_price, max_price)
+    #     st.session_state['de_days'] = (min_days, max_days)
+    #     st.rerun()
 
     st.markdown('---')
 
